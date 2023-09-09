@@ -36,7 +36,7 @@ int abrir(char* nomeArquivo) {
     //Abrindo arquivo modo leitura
     // Tenta abrir o arquivo em modo de leitura usando fopen_s.
     FILE* arquivo;
-    arquivo = fopen(nomeArquivo, "r");
+    arquivo = fopen(nomeArquivo, "a+");
     if (arquivo == NULL) {
         // Não foi possível abrir o arquivo.
         return ERRO;
@@ -72,7 +72,7 @@ void* ler(int ID, unsigned tamanho, unsigned quantidade) {
     }
 
     // Aloca memória para armazenar o conteúdo lido.
-    conteudoLido = malloc(tamanho * quantidade);
+    conteudoLido = malloc(tamanho * quantidade + 1);
     if (conteudoLido == NULL) {
         return NULL; // Falha na alocação de memória, retorna NULL para indicar erro.
     }
@@ -86,6 +86,9 @@ void* ler(int ID, unsigned tamanho, unsigned quantidade) {
         return NULL; // Erro na leitura, retorna NULL para indicar erro.
     }
 
+    // Adiciona um caractere nulo de terminação para formar uma string válida.
+    ((char*)conteudoLido)[bytesLidos * tamanho] = '\0';
+
     return conteudoLido; // Retorna o conteúdo lido em caso de sucesso.
 }
 
@@ -94,12 +97,54 @@ void* ler(int ID, unsigned tamanho, unsigned quantidade) {
    Retorna o número de bytes escritos no arquivo em caso de sucesso ou ERRO se ocorrer um erro.
 */
 int escrever(int ID, const void* buffer, unsigned tamanho, unsigned quantidade) {
-    return ERRO;
+
+    // Verifica se o ID do arquivo está dentro do limite válido.
+    if (ID < 0 || ID >= geraID) {
+        return ERRO; // ID inválido, retorna ERRO para indicar erro.
+    }
+
+    // Obtém o arquivo com o ID especificado.
+    FILE* arquivo = sistemaArquivos[ID].arquivo;
+
+    if (arquivo == NULL) {
+        return ERRO; // Arquivo não encontrado, retorna ERRO para indicar erro.
+    }
+
+    // Escreve os bytes do buffer no arquivo.
+    size_t bytesEscritos = fwrite(buffer, tamanho, quantidade, arquivo);
+
+    // Verifica se a escrita foi bem-sucedida.
+    if (bytesEscritos != quantidade) {
+        return ERRO; // Erro na escrita, retorna ERRO para indicar erro.
+    }
+
+    // A escrita foi bem-sucedida, retorna o número de bytes escritos.
+    return bytesEscritos;
 }
 
 /* Fecha o arquivo com o ID especificado.
    Retorna 1 em caso de sucesso ou ERRO se ocorrer um erro.
 */
 int fechar(int ID) {
-    return ERRO;
+
+    // Verifica se o ID do arquivo está dentro do limite válido.
+    if (ID < 0 || ID >= geraID) {
+        return ERRO; // ID inválido, retorna ERRO para indicar erro.
+    }
+
+    // Obtém o arquivo com o ID especificado.
+    FILE* arquivo = sistemaArquivos[ID].arquivo;
+    if (arquivo == NULL) {
+        return ERRO; // Arquivo não encontrado, retorna ERRO para indicar erro.
+    }
+
+    // Fecha o arquivo.
+    if (fclose(arquivo) != 0) {
+        return ERRO; // Erro ao fechar o arquivo, retorna ERRO para indicar erro.
+    }
+
+    // Marca o arquivo como fechado, definindo o ponteiro do arquivo como NULL.
+    sistemaArquivos[ID].arquivo = NULL;
+
+    return 1; // Retorna 1 para indicar sucesso no fechamento do arquivo.
 }
